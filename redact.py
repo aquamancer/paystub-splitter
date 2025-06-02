@@ -3,6 +3,9 @@ import os
 import sys
 import re
 import string
+import json
+
+CONFIG_JSON = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.json");
 
 def get_name(page):
     return page.get_textbox(pymupdf.Rect(1.0 * 72, 1.85 * 72, 4.0 * 72, 2.10 * 72)).strip()
@@ -30,11 +33,11 @@ def prompt_selection_or_custom(options, value_type):
             else:
                 confirm = input(f"input: \"{user_input}\". is this correct? [y/N]: ")
                 if (confirm.lower() == "y"):
-                    return user_input;
+                    return user_input
         except ValueError:
             confirm = input(f"input: \"{user_input}\". is this correct? [y/N]: ")
             if (confirm.lower() == "y"):
-                return user_input;
+                return user_input
 def prompt_selection_or_custom_dept(pdf_name, matches, name_to_dept):
     option_to_dept = {}
     print(f"Are any of these {pdf_name}?:")
@@ -46,8 +49,8 @@ def prompt_selection_or_custom_dept(pdf_name, matches, name_to_dept):
             print(f"{string.ascii_uppercase[i - 26]}: {matches[i]}:\t{name_to_dept[matches[i]]}")
             option_to_dept[string.ascii_uppercase[i - 26]] = name_to_dept[matches[i]]
         else:
-            i = 51;
-            break;
+            i = 51
+            break
 
     while True:
         if len(matches) == 0:
@@ -59,47 +62,104 @@ def prompt_selection_or_custom_dept(pdf_name, matches, name_to_dept):
             result = option_to_dept[user_input]
         else:
             result = user_input
-        confirm = input(f"you chose dept number: {result} for {pdf_name}. is this correct? [y/N]: ")
-        if (confirm.lower() == "y"):
+        confirm = input(f"you chose dept number: {result} for {pdf_name}. is this correct? [Y/n]: ")
+        if (confirm.lower() == "y" or confirm == ""):
             return result
 
+def prompt_src_dir():
+    valid_dir = False
+    while not valid_dir:
+        src_dir = input("Enter directory path containing paystub pdf and name-to-department mapping txt: ")
+        valid_dir = True
+        if not os.path.exists(src_dir):
+            print("File path doesn't exist")
+            valid_dir = False
+            continue
+        if not os.path.isdir(src_dir):
+            print("Not a directory.")
+            valid_dir = False
+    return src_dir
 
-valid_dir = False
-while not valid_dir:
-    src_dir = input("Enter directory path containing paystub pdf and name-to-department mapping txt: ")
-    valid_dir = True
-    if not os.path.exists(src_dir):
-        print("File path doesn't exist")
-        valid_dir = False
-        continue
-    if not os.path.isdir(src_dir):
-        print("Not a directory.")
-        valid_dir = False
+def prompt_paystubs_pdf():
+    raw_paystubs_name = input("Enter filename of paystub pdf: ")
+    paystubs_pdf = os.path.join(src_dir, raw_paystubs_name)
+    if not os.path.exists(paystubs_pdf):
+        sys.exit("pdf does not exist")
+    if not os.path.isfile(paystubs_pdf):
+        sys.exit("pdf is not a file")
+    return paystubs_pdf
 
-raw_paystubs_name = input("Enter filename of paystub pdf: ")
-paystubs_pdf = os.path.join(src_dir, raw_paystubs_name)
-if not os.path.exists(paystubs_pdf):
-    sys.exit("pdf does not exist")
-if not os.path.isfile(paystubs_pdf):
-    sys.exit("pdf is not a file")
+def prompt_name_dept_map_txt():
+    name_dept_map_name = input("Enter filename of name-to-department mapping txt: ")
+    name_dept_map_txt = os.path.join(src_dir, name_dept_map_name)
+    if not os.path.exists(name_dept_map_txt):
+        sys.exit("txt does not exist")
+    if not os.path.isfile(name_dept_map_txt):
+        sys.exit("not a file")
+    return name_dept_map_txt
 
-name_dept_map_name = input("Enter filename of name-to-department mapping txt: ")
-name_dept_map_txt = os.path.join(src_dir, name_dept_map_name)
-if not os.path.exists(name_dept_map_txt):
-    sys.exit("txt does not exist")
-if not os.path.isfile(name_dept_map_txt):
-    sys.exit("not a file")
+# try to load config.json that holds previous run file names
+if (os.path.exists(CONFIG_JSON) and os.path.isfile(CONFIG_JSON)):
+    with open(CONFIG_JSON, "r") as config_file:
+        print(f"Located config.json at: {CONFIG_JSON}")
+        try:
+            config = json.load(config_file)
+            src_dir = config["lastSrcDir"]
+            if os.path.isdir(src_dir):
+                choice = input(f"Sources directory found at: {src_dir}. Use it? [Y/n]: ")
+                if (choice.lower() != "y" and choice != ""):
+                    src_dir = prompt_src_dir()
+            else:
+                print(f"Path from config file is not a directory: {src_dir}")
+                src_dir = prompt_src_dir()
+
+            paystubs_pdf = os.path.join(src_dir, config["lastPaystubsName"])
+            if os.path.isfile(paystubs_pdf):
+                choice = input(f"Paystubs file found at: {paystubs_pdf}. Use it? [Y/n]: ")
+                if (choice.lower() != "y" and choice != ""):
+                    paystubs_pdf = prompt_paystubs_pdf()
+            else:
+                print(f"Path from config file is not a file: {paystubs_pdf}")
+                paystubs_pdf = prompt_paystubs_pdf()
+
+            name_dept_map_txt = os.path.join(src_dir, config["lastDeptMapName"])
+            if os.path.isfile(name_dept_map_txt):
+                choice = input(f"Name-dept mapping .txt found at: {name_dept_map_txt}. Use it? [Y/n]: ")
+                if (choice.lower() != "y" and choice != ""):
+                    name_dept_map_txt = prompt_name_dept_map_txt()
+            else:
+                print(f"Path from config file is not a file: {name_dept_map_txt}")
+                name_dept_map_txt = prompt_name_dept_map_txt()
+        except Exception as ex:
+            print("Error parsing config json")
+            src_dir = prompt_src_dir()
+            paystubs_pdf = prompt_paystubs_pdf()
+            name_dept_map_txt = prompt_name_dept_map_txt()
+else:
+    print("No config.json detected")
+    src_dir = prompt_src_dir()
+    paystubs_pdf = prompt_paystubs_pdf()
+    name_dept_map_txt = prompt_name_dept_map_txt()
+
+# save last inputs to json. querying CONFIG_JSON after this will cause unintended behavior
+json_export = {
+    "lastSrcDir": os.path.basename(src_dir),
+    "lastPaystubsName": os.path.basename(paystubs_pdf),
+    "lastDeptMapName": os.path.basename(name_dept_map_txt)
+}
+with open(CONFIG_JSON, "w") as config_file:
+    json.dump(json_export, config_file)
 
 # grab 20XX_PP from input file name
-year_pp = raw_paystubs_name[0:raw_paystubs_name.find("_")]
+year_pp = os.path.basename(paystubs_pdf)[0:os.path.basename(paystubs_pdf).find("_")]
 if len(year_pp) < 6:
     year = input("Enter year: ")
     pay_period = input("Enter 2-digit pay period: ")
 else:
     year = year_pp[0:4]
     pay_period = year_pp[6:8]
-    confirm = input(f"Is this correct? Year: {year}, Pay Period: {pay_period}. [y/N]: ")
-    if confirm.lower() != "y":
+    confirm = input(f"Is this correct? Year: {year}, Pay Period: {pay_period}. [Y/n]: ")
+    if confirm.lower() != "y" and confirm != "":
         year = input("Enter year: ")
         pay_period = input("Enter 2-digit pay period: ")
 
