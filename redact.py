@@ -143,7 +143,7 @@ else:
 
 # save last inputs to json. querying CONFIG_JSON after this will cause unintended behavior
 json_export = {
-    "lastSrcDir": os.path.basename(src_dir),
+    "lastSrcDir": os.path.abspath(src_dir),
     "lastPaystubsName": os.path.basename(paystubs_pdf),
     "lastDeptMapName": os.path.basename(name_dept_map_txt)
 }
