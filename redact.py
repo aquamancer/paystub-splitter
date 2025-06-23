@@ -8,9 +8,9 @@ import json
 CONFIG_JSON = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.json");
 
 def get_name(page):
-    return page.get_textbox(pymupdf.Rect(1.0 * 72, 1.85 * 72, 4.0 * 72, 2.10 * 72)).strip()
+    return page.get_textbox(pymupdf.Rect(1.0 * 72, 1.97 * 72, 4.0 * 72, 2.2 * 72)).strip()
 def get_name1(page):
-    return page.get_textbox(pymupdf.Rect(0.5 * 72, 5.1 * 72, 3.25 * 72, 5.0 * 72)).strip()
+    return page.get_textbox(pymupdf.Rect(0.5 * 72, 5 * 72, 3.25 * 72, 5.14 * 72)).strip()
 # Prompts user for selection from a list or to enter custom value
 # options a list of selection candidates
 # a string to display what kind of value the custom value is
