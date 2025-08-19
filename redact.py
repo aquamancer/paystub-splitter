@@ -89,6 +89,12 @@ def prompt_paystubs_pdf():
         sys.exit("pdf is not a file")
     return paystubs_pdf
 
+def find_first_pdf(dir):
+    for file in os.listdir(dir):
+        if file.lower().endswith(".pdf"):
+            return os.path.join(dir, file)
+    return None
+
 def prompt_name_dept_map_txt():
     name_dept_map_name = input("Enter filename of name-to-department mapping txt: ")
     name_dept_map_txt = os.path.join(src_dir, name_dept_map_name)
@@ -113,7 +119,7 @@ if (os.path.exists(CONFIG_JSON) and os.path.isfile(CONFIG_JSON)):
                 print(f"Path from config file is not a directory: {src_dir}")
                 src_dir = prompt_src_dir()
 
-            paystubs_pdf = os.path.join(src_dir, config["lastPaystubsName"])
+            paystubs_pdf = find_first_pdf(src_dir)
             if os.path.isfile(paystubs_pdf):
                 choice = input(f"Paystubs file found at: {paystubs_pdf}. Use it? [Y/n]: ")
                 if (choice.lower() != "y" and choice != ""):
